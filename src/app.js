@@ -3,7 +3,7 @@ import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import cors from "cors";
 import joi from "joi";
-import e from "express";
+import dayjs from "dayjs";
 
 dotenv.config();
 
@@ -104,7 +104,41 @@ server.get("/wallet", async (req, res) => {
   }
 });
 
-server.post("/wallet", async (req, res) => {});
+server.post("/wallet", async (req, res) => {
+  const { description, value, type } = req.body;
+
+  const dataSchema = joi.object({
+    description: joi.string().required(),
+    value: joi.string().required(),
+    type: joi.string().valid("output", "entry").required(),
+  });
+
+  const validate = dataSchema.validate(
+    { description, value, type },
+    { abortEarly: false }
+  );
+
+  if (validate.error) {
+    const err = validate.error.details.map((detail) => detail.message);
+    return res.status(422).send(err);
+  }
+
+  try {
+    const day = dayjs(Date.now()).format("DD/MM");
+
+    await db.collection("wallet").insertOne({
+      description,
+      value,
+      type,
+      date: day,
+    });
+
+    return res.send("ok");
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Erro no servidor");
+  }
+});
 
 const PORT = 5000;
 server.listen(PORT);
