@@ -39,13 +39,13 @@ server.post("/login", async (req, res) => {
     password: joi.string().required(),
   });
 
-  const validade = dataSchema.validate(
+  const validate = dataSchema.validate(
     { email, password },
     { abortEarly: false }
   );
 
-  if (validade.error) {
-    const err = validade.error.details.map((detail) => detail.message);
+  if (validate.error) {
+    const err = validate.error.details.map((detail) => detail.message);
     return res.status(422).send(err);
   }
 
@@ -59,11 +59,41 @@ server.post("/login", async (req, res) => {
 
     return res.send("ok");
   } catch {
-    return res.send("erro");
+    res.status(500).send("Erro no servidor");
   }
 });
 
-server.post("/sing-up", async (req, res) => {});
+server.post("/sing-up", async (req, res) => {
+  const { name, email, password, confirmPassword } = req.body;
+
+  const dataSchema = joi.object({
+    name: joi.string().required(),
+    email: joi.string().email().required(),
+    password: joi.string().required(),
+    confirmPassword: joi.string().valid(joi.ref("password")).required(),
+  });
+
+  const validate = dataSchema.validate(
+    { name, email, password, confirmPassword },
+    { abortEarly: false }
+  );
+
+  if (validate.error) {
+    const err = validate.error.details.map((detail) => detail.message);
+    return res.status(422).send(err);
+  }
+
+  try {
+    const verifyEmail = await db.collection("login").findOne({ email });
+    if (verifyEmail) return res.status(409).send("e-mail já cadastrado");
+
+    await db.collection("login").insertOne({ name, email, password });
+
+    res.status(201).send("conta criada");
+  } catch {
+    res.status(500).send("Erro no servidor");
+  }
+});
 
 server.get("/wallet", async (req, res) => {});
 
