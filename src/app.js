@@ -32,27 +32,30 @@ server.get("/login", async (req, res) => {
 });
 
 server.post("/login", async (req, res) => {
-  const { email, senha } = req.body;
+  const { email, password } = req.body;
 
   const dataSchema = joi.object({
     email: joi.string().email().required(),
-    senha: joi.string().min(5),
+    password: joi.string().required(),
   });
 
-  const validade = dataSchema.validate({ email, senha }, { abortEarly: false });
+  const validade = dataSchema.validate(
+    { email, password },
+    { abortEarly: false }
+  );
 
-  if (validade.err) {
-    const err = validade.err.details.map((detail) => detail.message);
+  if (validade.error) {
+    const err = validade.error.details.map((detail) => detail.message);
     return res.status(422).send(err);
   }
 
   try {
     const verifyEmail = await db.collection("login").findOne({ email });
 
-    if (!verifyEmail) return res.send("e-mail não cadastrado").status(422);
+    if (!verifyEmail) return res.status(422).send("e-mail não cadastrado");
 
-    if (verifyEmail.senha !== senha)
-      return res.send("senha errada").status(422);
+    if (verifyEmail.password !== password)
+      return res.status(422).send("senha errada");
 
     return res.send("ok");
   } catch {
