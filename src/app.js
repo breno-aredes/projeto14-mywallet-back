@@ -95,7 +95,14 @@ server.post("/sing-up", async (req, res) => {
   }
 });
 
-server.get("/wallet", async (req, res) => {});
+server.get("/wallet", async (req, res) => {
+  try {
+    const wallet = await db.collection("wallet").find().toArray();
+    return res.send(wallet);
+  } catch (err) {
+    res.status(500).send("Erro no servidor");
+  }
+});
 
 server.post("/wallet", async (req, res) => {});
 
