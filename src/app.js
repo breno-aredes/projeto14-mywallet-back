@@ -107,7 +107,7 @@ server.post("/wallet", async (req, res) => {
 
   const dataSchema = joi.object({
     description: joi.string().required(),
-    value: joi.string().required(),
+    value: joi.number().required(),
     type: joi.string().valid("output", "entry").required(),
   });
 
