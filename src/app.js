@@ -52,10 +52,8 @@ server.post("/login", async (req, res) => {
   try {
     const verifyEmail = await db.collection("login").findOne({ email });
 
-    if (!verifyEmail) return res.status(422).send("e-mail não cadastrado");
-
-    if (verifyEmail.password !== password)
-      return res.status(422).send("senha errada");
+    if (!verifyEmail || verifyEmail.password !== password)
+      return res.status(422).send("E-mail ou senha incorretos");
 
     return res.send("ok");
   } catch {
