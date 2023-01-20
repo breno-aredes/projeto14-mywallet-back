@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import joi from "joi";
 import dayjs from "dayjs";
+import bcrypt from "bcrypt";
 
 dotenv.config();
 
@@ -22,7 +23,7 @@ try {
 const db = mongoClient.db();
 
 //get login so para teste, deletar depois.
-server.get("/login", async (req, res) => {
+server.get("/sing-in", async (req, res) => {
   try {
     const particiapants = await db.collection("login").find().toArray();
     return res.send(particiapants);
@@ -31,7 +32,7 @@ server.get("/login", async (req, res) => {
   }
 });
 
-server.post("/login", async (req, res) => {
+server.post("/sing-in", async (req, res) => {
   const { email, password } = req.body;
 
   const dataSchema = joi.object({
@@ -52,7 +53,9 @@ server.post("/login", async (req, res) => {
   try {
     const verifyEmail = await db.collection("login").findOne({ email });
 
-    if (!verifyEmail || verifyEmail.password !== password)
+    const verifyPassword = bcrypt.compareSync(password, verifyEmail.password);
+
+    if (!verifyEmail || !verifyPassword)
       return res.status(422).send("E-mail ou senha incorretos");
 
     return res.send("ok");
@@ -76,6 +79,8 @@ server.post("/sing-up", async (req, res) => {
     { abortEarly: false }
   );
 
+  const passwordHashed = bcrypt.hashSync(password, 10);
+
   if (validate.error) {
     const err = validate.error.details.map((detail) => detail.message);
     return res.status(422).send(err);
@@ -85,7 +90,9 @@ server.post("/sing-up", async (req, res) => {
     const verifyEmail = await db.collection("login").findOne({ email });
     if (verifyEmail) return res.status(409).send("e-mail já cadastrado");
 
-    await db.collection("login").insertOne({ name, email, password });
+    await db
+      .collection("login")
+      .insertOne({ name, email, password: passwordHashed });
 
     res.status(201).send("conta criada");
   } catch {
