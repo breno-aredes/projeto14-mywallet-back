@@ -5,6 +5,7 @@ import cors from "cors";
 import joi from "joi";
 import dayjs from "dayjs";
 import bcrypt from "bcrypt";
+import { v4 as uuid } from "uuid";
 
 dotenv.config();
 
@@ -53,12 +54,18 @@ server.post("/sing-in", async (req, res) => {
   try {
     const verifyEmail = await db.collection("login").findOne({ email });
 
+    const token = uuid();
+
     const verifyPassword = bcrypt.compareSync(password, verifyEmail.password);
 
     if (!verifyEmail || !verifyPassword)
       return res.status(422).send("E-mail ou senha incorretos");
 
-    return res.send("ok");
+    await db
+      .collection("sessions")
+      .insertOne({ userId: verifyEmail._id, token });
+
+    return res.status(200).send(token);
   } catch {
     res.status(500).send("Erro no servidor");
   }
@@ -101,8 +108,19 @@ server.post("/sing-up", async (req, res) => {
 });
 
 server.get("/wallet", async (req, res) => {
+  const { authorization } = req.headers;
+  const token = authorization?.replace("Bearer ", "");
+
+  if (!token) return res.status(420).send("informe o token");
+
   try {
-    const wallet = await db.collection("wallet").find().toArray();
+    const checkSession = await db.collection("sessions").findOne({ token });
+    if (!checkSession) return res.status(401).send("token invalido");
+
+    const wallet = await db
+      .collection("wallet")
+      .find({ userId: checkSession.userId })
+      .toArray();
     return res.send(wallet);
   } catch (err) {
     res.status(500).send("Erro no servidor");
@@ -111,6 +129,10 @@ server.get("/wallet", async (req, res) => {
 
 server.post("/wallet", async (req, res) => {
   const { description, value, type } = req.body;
+  const { authorization } = req.headers;
+  const token = authorization?.replace("Bearer ", "");
+
+  if (!token) return res.status(420).send("informe o token");
 
   const dataSchema = joi.object({
     description: joi.string().required(),
@@ -131,11 +153,19 @@ server.post("/wallet", async (req, res) => {
   try {
     const day = dayjs(Date.now()).format("DD/MM");
 
+    const checkSession = await db.collection("sessions").findOne({ token });
+
+    if (!checkSession)
+      return res
+        .status(401)
+        .send("você não tem autorização para cadastrar entradas ou saidas");
+
     await db.collection("wallet").insertOne({
       description,
       value,
       type,
       date: day,
+      userId: checkSession.userId,
     });
 
     return res.send("ok");
