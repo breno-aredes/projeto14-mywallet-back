@@ -1,29 +1,18 @@
 import bcrypt from "bcrypt";
 import { v4 as uuid } from "uuid";
 import db from "../config/database.js";
-import { singInSchema, singUpSchema } from "../model/authSchema.js";
 
 export async function singIn(req, res) {
   const { email, password } = req.body;
 
-  const validate = singInSchema.validate(
-    { email, password },
-    { abortEarly: false }
-  );
-
-  if (validate.error) {
-    const err = validate.error.details.map((detail) => detail.message);
-    return res.status(422).send(err);
-  }
-
   try {
-    const verifyEmail = await db.collection("login").findOne({ email });
-
     const token = uuid();
 
-    const verifyPassword = bcrypt.compareSync(password, verifyEmail.password);
+    const verifyEmail = await db.collection("login").findOne({ email });
+    if (!verifyEmail) return res.status(422).send("E-mail ou senha incorretos");
 
-    if (!verifyEmail || !verifyPassword)
+    const verifyPassword = bcrypt.compareSync(password, verifyEmail.password);
+    if (!verifyPassword)
       return res.status(422).send("E-mail ou senha incorretos");
 
     await db
@@ -37,19 +26,9 @@ export async function singIn(req, res) {
 }
 
 export async function singUP(req, res) {
-  const { name, email, password, confirmPassword } = req.body;
-
-  const validate = singUpSchema.validate(
-    { name, email, password, confirmPassword },
-    { abortEarly: false }
-  );
+  const { name, email, password } = req.body;
 
   const passwordHashed = bcrypt.hashSync(password, 10);
-
-  if (validate.error) {
-    const err = validate.error.details.map((detail) => detail.message);
-    return res.status(422).send(err);
-  }
 
   try {
     const verifyEmail = await db.collection("login").findOne({ email });
