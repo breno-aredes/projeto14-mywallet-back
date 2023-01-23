@@ -23,16 +23,6 @@ try {
 }
 const db = mongoClient.db();
 
-//get login so para teste, deletar depois.
-server.get("/sing-in", async (req, res) => {
-  try {
-    const particiapants = await db.collection("login").find().toArray();
-    return res.send(particiapants);
-  } catch (err) {
-    res.status(500).send("Erro no servidor");
-  }
-});
-
 server.post("/sing-in", async (req, res) => {
   const { email, password } = req.body;
 
