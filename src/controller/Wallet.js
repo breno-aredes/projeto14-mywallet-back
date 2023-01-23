@@ -1,6 +1,5 @@
 import dayjs from "dayjs";
 import db from "../config/database.js";
-import { walletSchema } from "../model/walletSchema.js";
 
 export async function listWallet(req, res) {
   const { authorization } = req.headers;
@@ -28,16 +27,6 @@ export async function newPostWallet(req, res) {
   const token = authorization?.replace("Bearer ", "");
 
   if (!token) return res.status(420).send("informe o token");
-
-  const validate = walletSchema.validate(
-    { description, value, type },
-    { abortEarly: false }
-  );
-
-  if (validate.error) {
-    const err = validate.error.details.map((detail) => detail.message);
-    return res.status(422).send(err);
-  }
 
   try {
     const day = dayjs(Date.now()).format("DD/MM");
