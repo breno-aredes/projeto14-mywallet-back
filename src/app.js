@@ -65,7 +65,7 @@ server.post("/sing-in", async (req, res) => {
       .collection("sessions")
       .insertOne({ userId: verifyEmail._id, token });
 
-    return res.status(200).send(token);
+    return res.status(200).send({ name: verifyEmail.name, token });
   } catch {
     res.status(500).send("Erro no servidor");
   }
